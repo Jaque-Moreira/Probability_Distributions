@@ -1,0 +1,797 @@
+---
+title: "Probability Distributions" 
+author: "Jaqueline V Moreira" 
+date: "2024-06-12" 
+output: 
+  # word_document: default
+  html_document: default
+  pdf_document: default
+  # powerpoint_presentation
+---
+
+```{r "Loading packages", include=FALSE}
+library(tidyverse)
+library(ggpubr) #organizar e exibir vários gráficos juntos
+library(ggalt) #ggplots com linhas mais suaves
+library(dplyr)
+library (magrittr)# compound assignment pipe-operator - %<>%
+library (patchwork) # apresentar mais de um gráfico junto
+# library(scales) #converter escala decimal para percentual
+# library(queueing) # modelo de enfileiramento
+```
+
+```{r "color palettes", include=FALSE}
+color_binomial = c("#ab9b96", "purple")
+color_poisson = c("#DCAB6B","darkorange","#F28F3B","#C0BF5F","#C8553D",
+                  "#BB7E5D","#BA6E6E","#8C705F", "#DE5466")
+color_expo = c( "#FEA82F", "#FF2E00", "#FF4500", "#FF8C00")
+color_urban= c("#2E2E3D", "#BFBFC0", "#C0BF5F", "#55556F", "#0C6291")
+color_violet = c("#624763", "#F9B3D1", "#2F1847", "#C62E65", "#D63AF9", "#A63446", "#7E1946", "#FF0022")
+color_candy = c("#26547C", "#EF476F", "#FFD166", "#06D6A0", "#FF0022")
+```
+
+# Binomial Distribution
+**The binomial distribution is a discrete probability distribution that describes the number of successes in a fixed number of independent Bernoulli trials, each with the same probability of success. Mathematically, it is defined by the probability mass function (PMF) for k successes in n trials**
+
+### Example
+
+According to Statistics Canada life tables, the probability a randomly selected
+90 year-old Canadian male survives for at least another year is approximately
+0.82. If twenty 90-year-old Canadian males are randomly selected,
+
+a) What is the probability exactly 18 survives for at least another year? 
+b) What is the probability that last than 15 survives for another year?
+
+Successes: The man survives for at least on year
+Failure: The man dies within one year Since the sampling of men are random, it’s reasonable to consider them independent
+
+Let x represent the number of men that survive for at least one year n = 20 p = 0.82
+
+```{r "Binomial data frame", echo=FALSE, message=FALSE, warning=FALSE}
+n = 20
+p = 0.82
+success <- 0:n
+probability <- rep(NA,length(success))
+for (i in success){
+  probability[i+1] =  dbinom(i, size = n, prob = p)}
+binomial_df = data.frame("Successes" = success, "Probability" = probability)
+# filtrando dados para destaque no gráfico
+# é necessário criar uma variavel que indique quais linhas do data frame devem ser destacadas. Para isso, utiliza-se a função mutate para criar a variável e a função case_when para selecionar as linhas de interesse.
+binomial_df = binomial_df %>% mutate(x_igual_18 = case_when(Successes==18 ~ TRUE,TRUE ~ FALSE))
+binomial_df = binomial_df %>% mutate(x_menor_15 = case_when(Successes<15 ~ TRUE,TRUE ~ FALSE))
+```
+
+#### a) Exactly 18
+```{r "Binomial exemple 1", echo=FALSE, message=FALSE, warning=FALSE}
+binomial_plot_1 = binomial_df %>% ggplot(mapping = (aes(x=Successes, y = probability))) +
+  # Construindo gráficos
+  geom_col(mapping = (aes(fill = x_igual_18))) +
+  # Adiciona rótulos com filtro
+  geom_text(aes(y = probability, label = ifelse(x_igual_18 == "TRUE", as.character(round(probability,5)), "")),
+                vjust = 0.5,
+                hjust = -0.5,
+                angle = -90,
+                color = "white",
+                fontface = "bold") +
+  # definindo cores
+  scale_fill_manual(values = color_binomial)+
+  # definindo Titulos
+  labs (title = "x~Bin(20,0.82)",
+       subtitle = "Binomial Distribution with n = 20 and p = 0.82",
+       y = "P(x)",
+       x= "Number of successes") +
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+    #legenda
+    legend.position="none",
+    legend.text = element_text(size=10),
+    #axis
+    axis.text.x = element_text(size=10),
+    axis.text.y = element_text(size=10),
+    #grid
+    panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+binomial_plot_1
+```
+
+#### b) Last than 15
+```{r "Binomial exemple 2", echo=FALSE, message=FALSE, warning=FALSE}
+binomial_plot_2 = binomial_df %>% ggplot(mapping = (aes(x=Successes, y = Probability))) +
+    # Construindo gráficos
+  geom_col(mapping = (aes(fill = x_menor_15))) +
+  # Adiciona texto
+  annotate("text",
+           x = 12,
+           y = 0.05,
+           label = round(filter(binomial_df, Successes < 15) %>% {sum(.$Probability)},5)) +
+  # definindo cores
+  scale_fill_manual(values = color_binomial)+
+  # definindo Titulos
+  labs (title = "x~Bin(20,0.82)",
+       subtitle = "Binomial Distribution with n = 20 and p = 0.82",
+       y = "P(x)",
+       x= "Number of successes") +
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+    #legenda
+    legend.position="none",
+    legend.text = element_text(size=10),
+    #axis
+    axis.text.x = element_text(size=10),
+    axis.text.y = element_text(size=10),
+    #grid
+    panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+binomial_plot_2
+```
+
+# Poisson Distribution
+**A discrete distribution representing the number of events in a certain time
+interval**
+**A scenario with a constant occurring rate can be either described in terms of poisson or exponencial distribution**
+
+```{r "Poisson lambda calcs", message=FALSE, warning=FALSE, include=FALSE}
+x_axis = c(0:35)
+lambda_1   =   rep(NA,length(x_axis))
+lambda_1.5 =   rep(NA,length(x_axis))
+lambda_2   =   rep(NA,length(x_axis))
+lambda_3   =   rep(NA,length(x_axis))
+lambda_5   =   rep(NA,length(x_axis))
+lambda_10   =  rep(NA,length(x_axis))
+lambda_15   =  rep(NA,length(x_axis))
+for( i in x_axis ) {
+  lambda_1[i+1]   =  dpois(x=i, lambda = 1)
+  lambda_1.5[i+1] =  dpois(x=i, lambda = 1.5)
+  lambda_2[i+1]   =  dpois(x=i, lambda = 2)
+  lambda_3[i+1]   =  dpois(x=i, lambda = 3)
+  lambda_5[i+1]   =  dpois(x=i, lambda = 5)
+  lambda_10[i+1]  =  dpois(x=i, lambda = 10)
+  lambda_15[i+1]  =  dpois(x=i, lambda = 15)
+  }
+poisson_data = data.frame("x" = x_axis,
+                          "lam_1" = lambda_1,
+                          "lam_1.5" = lambda_1.5,
+                          "lam_2" = lambda_2,
+                          "lam_3" = lambda_3,
+                          "lam_5" = lambda_5,
+                          "lam_10" = lambda_10,
+                          "lam_15" = lambda_15)
+poisson_data
+```
+```{r "Poisson lambda plots", echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+poisson_plots = poisson_data %>% ggplot(mapping = (aes(x=x))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = lam_1, color = "1.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_1, color = "1.0")))+
+  geom_line(mapping = (aes(y = lam_1.5, color = "1.5")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_1.5, color = "1.5")))+
+  geom_line(mapping = (aes(y = lam_2, color = "2.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_2, color = "2.0")))+
+  geom_line(mapping = (aes(y = lam_3, color = "3.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_3, color = "3.0")))+
+  geom_line(mapping = (aes(y = lam_5, color = "5.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_5, color = "5.0")))+
+  geom_line(mapping = (aes(y = lam_10, color = "10.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_10, color = "10.0")))+
+  geom_line(mapping = (aes(y = lam_15, color = "15.0")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lam_15, color = "15.0")))+
+  # # definindo cores
+  scale_color_manual(values=color_poisson)+
+  # definindo Titulos
+  labs(title = "Poisson Distribution",
+       subtitle = "with n = 35 and Lambda from 1 to 15",
+       y = "P(x)",
+       x= "Number of successes for time interval",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="right",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+poisson_plots
+```
+
+### Example
+
+Exclusive Vines import Argentinian wine into Australia. They've begun
+advertising on Facebook to direct traffic to their website where customers can
+order wine online. The number of click-through sales from the ad is Poisson
+distributed with a mean of 12 click-through sales per day.
+
+μ = 12 click-through sales per day 
+E(x) = μ = λ
+
+Find the probability of getting:
+a) exaclty 8 click-through sales in the first day 
+b) at least 10 click-through sales in the first day
+
+```{r "ex lambda 12 calc", message=FALSE, warning=FALSE, include=FALSE}
+x_axis = c(0:35)
+prob_lambda = rep(NA,length(x_axis))
+for( i in x_axis ) {
+  prob_lambda[i+1] =  dpois(x=i, lambda = 12)}
+lambda_12 = data.frame("x_axis" = x_axis, "prob_lambda" = prob_lambda)
+# filtrando dados para destaque no gráfico
+lambda_12_df <- lambda_12 %>% mutate(x_igual_8 = case_when(x_axis==8 ~ TRUE, TRUE ~ FALSE),
+                                     x_least_10 = case_when(x_axis>=10 ~ TRUE,TRUE ~ FALSE))
+```
+
+#### a) Exacly 8
+```{r "ex lambda 12 exacly 8 plot", echo=FALSE, message=FALSE, warning=FALSE}
+poisson_ex_plot_2 <- lambda_12_df %>%  ggplot(mapping = (aes(x = x_axis))) +
+geom_col(mapping = (aes(x = x_axis,
+                        y = prob_lambda,
+                        fill = x_igual_8)),
+                        width = 0.5)+
+  # sobrepondo curva suavizada
+  geom_xspline(mapping = (aes(y = prob_lambda)),
+                              color= "#6E0D25",
+                              spline_shape = -0.4)+
+  geom_text(aes(y = prob_lambda, label = ifelse(x_igual_8 == "TRUE", scales::percent(round(prob_lambda,5)), "")),
+                vjust = -0.7, hjust = + 1) +
+  # xpline suaviza gráficos de linha, o sline_shape indicado é de -0.4.
+  # quando sline_shape = 0 não há suavização
+  geom_point(mapping = (aes(y = prob_lambda)),
+                        color = "#6E0D25")+
+  # definindo cores
+  scale_fill_manual(values=color_poisson)+
+  # definindo Titulos
+  labs(title = "X~Poi(12)",
+       subtitle = "Poisson Distribution with λ = 12",
+       y = "P(x)",
+       x= "Number of successes for time interval",
+       fill = "exacly 8 successes") +
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position= "none",
+        legend.text = element_blank(),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+poisson_ex_plot_2
+```
+
+#### b) At least 10
+```{r "ex lambda 12 at least 10 plot", echo=FALSE, message=FALSE, warning=FALSE}
+poisson_ex_plot_3 <- lambda_12_df %>%  ggplot(mapping = (aes(x = x_axis))) +
+  geom_col(mapping = (aes(x = x_axis,
+                          y = prob_lambda,
+                          fill = x_least_10)), #segmentar por variavel True ou False
+                      width = 0.5)+
+  # Adiciona texto
+  annotate("text",
+           x = 20,
+           y = 0.05,
+           label = round(filter(lambda_12_df, x_least_10 == TRUE) %>% {sum(.$prob_lambda)},5)) +
+           #  label = round(filter(binomial_df, Successes < 15) %>% {sum(.$Probability)},5)) +
+  # sobrepondo curva suavizada
+  geom_xspline(mapping = (aes(y = prob_lambda)),
+                          color= "#6E0D25",
+                          spline_shape = -0.4)+
+  # xpline suaviza gráficos de linha, o sline_shape indicado é de -0.4.
+  # quando sline_shape = 0 não há suavização
+  geom_point(mapping = (aes(y = prob_lambda)),
+                        color = "#6E0D25")+
+  # definindo cores
+  scale_fill_manual(values=color_poisson)+
+  # definindo Titulos
+  labs(title = "X~Poi(12)",
+       subtitle = "Poisson Distribution with λ = 12",
+       y = "P(x)",
+       x= "Number of successes for time interval",
+       fill = "exacly 8 successes") +
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_blank(),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position= "none",
+        legend.text = element_blank(),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+poisson_ex_plot_3
+
+```
+
+
+# Relationship between binomial and poisson distribution
+
+**The Binomial Distribution tends towards Poisson distribution as:**
+**n tends to infinity**
+**p tends to zero**
+**Lambda stays constant and np = Lambda.**
+
+**In other words, if the mean of a Binomial Distribution is equal to the rate of Lambda in a Poisson Distribution (np = Lambda) both distribution will convert to the same results as n increases and p decreases.**
+
+**The Poisson Distribution can be used to provide a reasonable approximation to the Binomial Distribution if the sample is large (n>=50) and p is small (rare events with p<=0.05)**
+
+
+```{r "binomial and poisson calc", include=FALSE}
+p = 0.05 # 5%
+n = c(900:3000)
+x = 90
+bin = rep(NA, length(n))
+poi = rep(NA, length(n))
+for (b in n) {
+  bin[b-899] = dbinom(x=x,size = b, prob = p)
+}
+for (i in n) {
+  poi[i-899] = dpois(x=x, lambda = i*p)
+}
+bin_poi = data.frame("x_axis" = n, "bin" = bin, "poi" = poi)
+```
+```{r "binomial and poisson plot", echo=FALSE}
+bin_poi_plots = bin_poi %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = bin, color = "Binomial")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = bin, color = "Binomial")))+
+  geom_line(mapping = (aes(y = poi, color = "Poisson")), linewidth = 0.7, linetype = 2)+
+  geom_point(mapping = (aes(y = poi, color = "Poisson")))+
+  # # definindo cores
+  scale_color_manual(values=color_poisson)+
+  # definindo Titulos
+  labs(title = "Binomial and Poisson Distribution",
+       subtitle = "n from 900 to 3000, p = 5% and Lambda = np",
+       y = "P(x)",
+       x= "Number of successes",
+       color = "Distribuition")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="top",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+bin_poi_plots
+```
+```{r "binomial and poisson difference", echo=FALSE}
+bin_x_90 = round(dbinom(x=x,size = 2500, prob = p),6)
+poi_x_90 = round(dpois(x=x,lambda = 2500*p),6)
+paste0("X~Bin(2500,0.05)")
+paste0("P(X = 90) = ",bin_x_90 )
+paste0(" and ")
+paste0("X~Poi(2500*0.05)")
+paste0("P(X = 90) = ",poi_x_90 )
+paste0("Uma diferença de apenas ",round(poi_x_90 - bin_x_90,6))
+```
+
+# Binomial and Poisson example
+Albinism is a rare genetic disorder that affects one in 20.000 europeans. People
+with albinism produce little or none of the pigment melanin. In a random sample
+of 1.000 europeans, what is the probability that exactly 2 have albnism?
+In a random sampling the events can be considered independent. In this case each
+trial can be considered a bernoulli trial with
+p = 1/20000
+In a Binomial distribution: n = 1000 x = 2
+in a Poisson distribution: Lambda = n*p lambda = 1000*1/20000
+
+```{r "binomial and poisson example", echo=FALSE}
+x = 2
+p = 1/20000
+n = 1000
+lambda = n*p
+bin_x_2 = round(dbinom(x=x,size = n, prob = p),6)
+poi_x_2 = round(dpois(x=x,lambda = lambda),6)
+paste0("In a Binomial distribution P(X = 2) = ", bin_x_2)
+paste0("In a Poisson distribution P(X = 2) = ", poi_x_2)
+paste0("a difference of ", round(poi_x_2 -bin_x_2,6))
+```
+
+# Exponential Distribution
+
+**The exponential distribution is one of the widely used continuous distributions. It is used to model the time elapsed between events.**
+
+Poisson  = Discrete
+Number of events in a time interval
+
+Exponencial = Continuous
+The time between two events
+
+*The same event can be modeled as a Poisson or an Exponential distribution*
+
+```{r "Expo lambda calcs", message=FALSE, warning=FALSE, include=FALSE}
+lambda = c(1.5,3,6,12,18,24,30)
+rate_expo = c(0.025,0.5,0.1,0.2,0.3,0.4,0.5)
+x_axis = 0:35
+lambda_1_5 =   rep(NA,length(x_axis))
+lambda_3   =   rep(NA,length(x_axis))
+lambda_6   =   rep(NA,length(x_axis))
+lambda_12  =   rep(NA,length(x_axis))
+lambda_18  =   rep(NA,length(x_axis))
+lambda_24  =   rep(NA,length(x_axis))
+lambda_30  =   rep(NA,length(x_axis))
+for (i in x_axis) {
+  lambda_1_5[i+1] =  dexp(x=i, rate = 0.025) # lambda de 1,5 por hora = 1.5/60min  = 0.025 por min
+  lambda_3[i+1]   =  dexp(x=i, rate = 0.05)  # lambda de 3 por hora = 3/60min  = 0.05 por min
+  lambda_6[i+1]   =  dexp(x=i, rate = 0.1)   # lambda de 6 por hora = 6/60min  = 0.10 por min
+  lambda_12[i+1]  =  dexp(x=i, rate = 0.2)   # lambda de 12 por hora = 12/60min  = 0.2 por min
+  lambda_18[i+1]  =  dexp(x=i, rate = 0.3)   # lambda de 18 por hora = 18/60min  = 0.3 por min
+  lambda_24[i+1]  =  dexp(x=i, rate = 0.4)   # lambda de 24 por hora = 24/60min  = 0.4 por min
+  lambda_30[i+1]  =  dexp(x=i, rate = 0.5)   # lambda de 30 por hora = 30/60min  = 0.5 por min
+}
+# o rate da distribuição exponencial deve ser descrito em termos da menor unidade de tempo
+# por exemplo, a chegada de clientes condiz com uma distribuição poisso com lambda = 3 por hora
+# dessa forma, a distribuição exponencial desses clientes será 3/60min ou 0.05
+
+expo_data = data.frame("x" = x_axis,
+                        "lambda_1_5" =  lambda_1_5,
+                        "lambda_3"   =  lambda_3,
+                        "lambda_6"   =  lambda_6,
+                        "lambda_12"  =  lambda_12,
+                        "lambda-18"  =  lambda_18,
+                        "lambda_24"  =  lambda_24,
+                        "lambda_30"  =  lambda_30)
+expo_data
+```
+
+```{r "Expo lambda plots", echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+expo_plots = expo_data %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = lambda_1_5, color = "1.5")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_1_5, color = "1.5")))+
+  geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  geom_line(mapping = (aes(y = lambda_6, color = "6")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_6, color = "6")))+
+  geom_line(mapping = (aes(y = lambda_12, color = "12")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_12, color = "12")))+
+  geom_line(mapping = (aes(y = lambda_18, color = "18")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_18, color = "18")))+
+  geom_line(mapping = (aes(y = lambda_24, color = "24")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_24, color = "24")))+
+  geom_line(mapping = (aes(y = lambda_30, color = "30")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_30, color = "30")))+
+  # # definindo cores
+  scale_color_manual(values=color_violet)+
+  # definindo Titulos
+  labs(title = "Exponencial Distribution",
+       subtitle = "with n = 35 and Lambda from 1.5 to 30",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="right",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+expo_plots
+```
+
+### Example
+
+Unique visitors arrive at a certain site by a Poisson distribution at an average rate of 3 per hour. 
+The average rate of a Poisson distribution is lambda so in this case lambda is
+equal to 3/hour
+What is the probability that the next visitor will arrive:
+
+a) Within 15 mins 
+b) After 30 mins passes 
+c) Between 40 and 60 mins
+
+The questions reference the time interval for the next arrival NOT THE AMOUNT
+OF VISITORS. In this case, the exponential distribution will be used.
+Lambda of 3 means that 3 visitors arrive by hour or one visitor every 20 min on
+average. To make the graph more intuitive, the scale will be built in terms of
+minutes.
+3 per hour = 3/60 = 0.05 clients per minute (rate in the graph)
+
+```{r message=FALSE, warning=FALSE, "Expo lambda=3", include=FALSE}
+lambda = 3
+rate = 0.05
+x_axis = 0:180 # minutos
+expo_3 = rep(NA, length(x_axis))
+for (i in x_axis){
+  expo_3[i+1] = dexp(x=i, rate = rate)
+}
+expo_3_df = data.frame("x_axis" = x_axis, "lambda_3" = expo_3)
+expo_3_df
+```
+```{r echo=FALSE, warning=FALSE, "Expo lambda=3 plot", paged.print=FALSE}
+expo_3_plot = expo_3_df %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  # # definindo cores
+  scale_color_manual(values=color_violet)+
+  # definindo Titulos
+  labs(title = "Exponencial Distribution",
+       subtitle = "λ = 3 exponencial rate = 0.05",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="none",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+expo_3_plot
+```
+
+#### a) Within 15 min
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, "Expo lambda=3 within 10 min"}
+# filtrando dados para destaque no gráfico
+# é necessário criar uma variavel que indique quais linhas do data frame devem ser
+# destacadas. Para isso, utiliza-se a função mutate para criar a variável e a função
+# case_when para selecionar as linhas de interesse.
+ expo_3_df = expo_3_df %>% mutate(x_menor_15 = case_when(x_axis<=15 ~ TRUE,TRUE ~ FALSE))
+# Gerando probabilidade acumulada de acordo com o destaque anterior
+ sum_ex_1 = 0
+  for (i in expo_3_df$x_axis){
+    if (expo_3_df$x_menor_15[i+1] == TRUE){
+      sum_ex_1 = sum_ex_1+expo_3_df$lambda_3[i+1]
+    }}
+
+ expo_menor_15 = pexp(q = 15, rate = 0.05)
+
+```
+
+```{r echo=FALSE, warning=FALSE, "Expo lambda=3 within 15 min plot", paged.print=FALSE}
+
+expo_3_plot1 = expo_3_df %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  #geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  geom_area(mapping = (aes(y = lambda_3, fill = expo_3_df$x_menor_15)))+
+  annotate("text", x=15, y = 0.04, label = "57,76%")+
+  # # definindo cores
+  scale_color_manual(values = color_violet)+
+  scale_fill_manual(values = color_violet)+
+  # definindo Titulos
+  labs(title = "Within 15 min",
+       subtitle = "exp dist. λ = 3",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="none",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+
+expo_3_plot1
+
+paste0("P(x<15) = ", round(expo_menor_15,4))
+```
+
+#### b) After 30 min
+```{r echo=FALSE, message=FALSE, warning=FALSE, "Expo lambda=3 after 30 min"}
+# filtrando dados para destaque no gráfico
+# é necessário criar uma variavel que indique quais linhas do data frame devem ser
+# destacadas. Para isso, utiliza-se a função mutate para criar a variável e a função
+# case_when para selecionar as linhas de interesse.
+ expo_3_df = expo_3_df %>% mutate(x_maior_30 = case_when(x_axis>=30 ~ TRUE,TRUE ~ FALSE))
+# Gerando probabilidade acumulada de acordo com o destaque anterior
+
+expo_maior_30 = 1 - (pexp(q = 30, rate = 0.05))
+
+```
+
+```{r echo=FALSE, warning=FALSE, "Expo lambda=3 after 30 min plot", paged.print=FALSE}
+expo_3_plot2 = expo_3_df %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  #geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  geom_area(mapping = (aes(y = lambda_3, fill = x_maior_30)))+
+  annotate("text", x=70, y = 0.007, label = round(expo_maior_30,4))+
+  # # definindo cores
+  scale_color_manual(values=color_violet)+
+  scale_fill_manual(values=color_violet)+
+  # definindo Titulos
+  labs(title = "after 30 min",
+       subtitle = "exp dist. λ = 3",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="none",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+
+expo_3_plot2
+
+paste0("P(x>30) = ", round(expo_maior_30,4))
+```
+
+
+#### c) Between 40 and 60 min
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, "Expo lambda=3 between 40 and 60 min"}
+# filtrando dados para destaque no gráfico
+# é necessário criar uma variavel que indique quais linhas do data frame devem ser
+# destacadas. Para isso, utiliza-se a função mutate para criar a variável e a função
+# case_when para selecionar as linhas de interesse.
+ expo_3_df = expo_3_df %>% mutate(x_menor_60 = case_when(x_axis<=60 ~ TRUE,TRUE ~ FALSE))
+ expo_3_df = expo_3_df %>% mutate(x_menor_40 = case_when(x_axis<=40 ~ TRUE,TRUE ~ FALSE))
+# Gerando probabilidade acumulada de acordo com o destaque anterior
+expo_between_40_60 = (pexp(q = 60, rate = 0.05)) - (pexp(q = 40, rate = 0.05))
+
+```
+
+```{r echo=FALSE, warning=FALSE, "Expo lambda=3 between 40 and 60 min plot", paged.print=FALSE}
+expo_3_60_plot = expo_3_df %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  #geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  #geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  geom_area(mapping = (aes(y = lambda_3, fill = x_menor_60)))+
+  annotate("text", x=60, y = 0.025, label = round(pexp(60,rate = 0.05),4))+
+  # # definindo cores
+  scale_color_manual(values=color_urban)+
+  scale_fill_manual(values=color_urban)+
+  # definindo Titulos
+  labs(title = "between 40 and 60 min",
+       subtitle = "exp dist. λ = 3",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_text(hjust = 0.5, size=14, face="bold"),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_text(hjust = 0.5, size=11),
+        #legend
+        legend.position="none",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+
+######################################
+
+expo_3_40_plot = expo_3_df %>% ggplot(mapping = (aes(x=x_axis))) +
+  # Construindo gráficos
+  #geom_line(mapping = (aes(y = lambda_3, color = "3")), linewidth = 0.9)+
+  #geom_point(mapping = (aes(y = lambda_3, color = "3")))+
+  geom_area(mapping = (aes(y = lambda_3, fill = x_menor_40)))+
+  annotate("text", x=40, y = 0.025, label = round(pexp(40,rate = 0.05),4))+
+  # # definindo cores
+  scale_color_manual(values=color_violet)+
+  scale_fill_manual(values=color_violet)+
+  # definindo Titulos
+  labs(title = "Exponencial Distribution",
+       subtitle = "λ = 3",
+       y = "P(x)",
+       x= "Time for next arrival",
+       color = "λ = ")+
+  # alterando aparecia
+  theme_classic()+
+  theme(# titles
+        plot.title = element_blank(),
+        axis.title.x = element_text(size=10, hjust = 0.9, face = "bold"),
+        axis.title.y = element_text(size=10, hjust = 0.9, face = "bold", angle = 0),
+        legend.title = element_text(size=10, face = "italic"),
+        plot.subtitle = element_blank(),
+        #legend
+        legend.position="none",
+        legend.text = element_text(size=10),
+        #axis
+        axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        #axis.line = element_line(color = "black", size = 1, linetype = 1))
+        #grid
+        panel.grid.major = element_line(color = "grey", linewidth = 0.5, linetype = 2))
+        #panel.grid.major.y = element_line(color = "grey", size = 0.5, linetype = 2))
+
+######################################
+expo_3_60_plot/expo_3_40_plot
+
+paste0("P(x>40 e x<60) = 0,9502 - 0,8647")
+paste0("P(x>40 e x<60) = ", round(expo_between_40_60,4))
+
+```
+
+
